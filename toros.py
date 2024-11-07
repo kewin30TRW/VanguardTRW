@@ -2,19 +2,17 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import html, dcc, Input, Output, State
 import pandas as pd
-from chart_utils import generate_chart, process_relayout_data
+from chart_utils import process_relayout_data
 from hmm_processor import process_data
 from fetchData import update_all_data
 import os
-from datetime import datetime  # Import datetime for sync time
+from datetime import datetime 
 
-# Set DATA_DIR based on environment variable or default to project directory
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
-# Initial data update
 update_all_data()
 
 addresses = {
