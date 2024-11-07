@@ -1,0 +1,11 @@
+runtime: python39
+entrypoint: gunicorn -w 2 -k sync -b :8080 toros:server
+
+instance_class: F1
+automatic_scaling:
+  target_cpu_utilization: 0.5
+  min_instances: 1
+  max_instances: 2
+
+env_variables:
+  DATA_DIR: '/tmp'
