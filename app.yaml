@@ -9,3 +9,4 @@ automatic_scaling:
 
 env_variables:
   DATA_DIR: '/tmp'
+  ENV: 'production'

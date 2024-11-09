@@ -10,7 +10,6 @@ from datetime import datetime
 from flask import Flask, request, Response
 from werkzeug.security import check_password_hash, generate_password_hash
 from google.cloud import secretmanager
-import functools
 
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 
@@ -40,7 +39,7 @@ def get_secret(secret_name):
     project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
     
     if not project_id:
-        raise EnvironmentError("Missing GOOGLE_CLOUD_PROJECT environment variable. Set it before running the application.")
+        raise EnvironmentError("Missing GOOGLE_CLOUD_PROJECT environment variable.")
     
     name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
     response = client.access_secret_version(request={"name": name})
@@ -53,30 +52,29 @@ if ENV == 'production':
     VALID_PASSWORD_HASH = generate_password_hash(VALID_PASSWORD)
 
     def check_auth(username, password):
+        """Check if the provided username and password are valid."""
         return username == VALID_USERNAME and check_password_hash(VALID_PASSWORD_HASH, password)
 
     def authenticate():
+        """Send a 401 response that enables basic auth."""
         return Response(
-            'Required authorization', 401,
+            'Authentication required', 401,
             {'WWW-Authenticate': 'Basic realm="Login Required"'}
         )
 
-    def requires_auth(f):
-        @functools.wraps(f)
-        def decorated(*args, **kwargs):
-            auth = request.authorization
-            if not auth or not check_auth(auth.username, auth.password):
-                return authenticate()
-            return f(*args, **kwargs)
-        return decorated
-else:
-    def requires_auth(f):
-        return f
+    def requires_auth():
+        """Authenticate every request."""
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
 
-@server.route('/')
-@requires_auth
-def index():
-    return app.index()
+    @server.before_request
+    def before_request():
+        """Apply authentication to all routes."""
+        return requires_auth()
+else:
+    def requires_auth():
+        pass
 
 app.layout = dbc.Container([
     dbc.Row([
@@ -228,6 +226,6 @@ def update_chart(relayoutData, clear_clicks, coin_data, existing_figure, selecte
     return fig, percent_change_text
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 
 server = app.server
