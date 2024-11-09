@@ -1,3 +1,4 @@
+import os
 import dash
 import dash_bootstrap_components as dbc
 from dash import html, dcc, Input, Output, State
@@ -5,8 +6,11 @@ import pandas as pd
 from chart_utils import process_relayout_data
 from hmm_processor import process_data
 from fetchData import update_all_data
-import os
-from datetime import datetime 
+from datetime import datetime
+from flask import Flask, request, Response
+from werkzeug.security import check_password_hash, generate_password_hash
+from google.cloud import secretmanager
+import functools
 
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 
@@ -25,7 +29,54 @@ addresses = {
     "eth3X": os.path.join(DATA_DIR, "eth3XPriceData.csv")
 }
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+server = Flask(__name__)
+
+app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.DARKLY])
+
+ENV = os.getenv('ENV', 'development')
+
+def get_secret(secret_name):
+    client = secretmanager.SecretManagerServiceClient()
+    project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
+    
+    if not project_id:
+        raise EnvironmentError("Missing GOOGLE_CLOUD_PROJECT environment variable. Set it before running the application.")
+    
+    name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+    response = client.access_secret_version(request={"name": name})
+    return response.payload.data.decode("UTF-8")
+
+if ENV == 'production':
+    VALID_USERNAME = get_secret("USERNAME")
+    VALID_PASSWORD = get_secret("PASSWORD")
+
+    VALID_PASSWORD_HASH = generate_password_hash(VALID_PASSWORD)
+
+    def check_auth(username, password):
+        return username == VALID_USERNAME and check_password_hash(VALID_PASSWORD_HASH, password)
+
+    def authenticate():
+        return Response(
+            'Required authorization', 401,
+            {'WWW-Authenticate': 'Basic realm="Login Required"'}
+        )
+
+    def requires_auth(f):
+        @functools.wraps(f)
+        def decorated(*args, **kwargs):
+            auth = request.authorization
+            if not auth or not check_auth(auth.username, auth.password):
+                return authenticate()
+            return f(*args, **kwargs)
+        return decorated
+else:
+    def requires_auth(f):
+        return f
+
+@server.route('/')
+@requires_auth
+def index():
+    return app.index()
 
 app.layout = dbc.Container([
     dbc.Row([
@@ -101,7 +152,6 @@ app.layout = dbc.Container([
     dcc.Store(id='selected-file'),
     dcc.Store(id='data-sync-trigger')
 ], fluid=True)
-
 
 @app.callback(
     [Output('selected-file', 'data'), Output('leverage-selector', 'value')],
