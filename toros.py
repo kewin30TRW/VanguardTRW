@@ -64,7 +64,7 @@ app.layout = dbc.Container([
         ], xs=12, sm=4, md=3),
         dbc.Col([
             dbc.Label("EMA Length"),
-            dbc.Input(id='ema-length-input', type='number', min=1, value=4)
+            dbc.Input(id='ema-length-input', type='number', min=1, value=20)
         ], xs=12, sm=4, md=3),
         dbc.Col([
             dbc.Label("Smoothing"),
