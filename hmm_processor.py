@@ -4,7 +4,8 @@ import pandas as pd
 import joblib
 from sklearn.preprocessing import StandardScaler
 from hmmlearn.hmm import GMMHMM
-import ta  
+import ta
+from ta.trend import EMAIndicator  
 
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 
@@ -18,13 +19,20 @@ market_conditions_colors = {
     'Strong Bearish': 'red'
 }
 
-def process_data(file_path):
+def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
     data = pd.read_csv(file_path, parse_dates=['time'], dayfirst=True)
     data.sort_values('time', inplace=True)
     data.reset_index(drop=True, inplace=True)
 
     data['log_return'] = np.log(data['close'] / data['close'].shift(1))
-    data['RSI'] = ta.momentum.RSIIndicator(close=data['close'], window=14).rsi()
+    data['RSI'] = ta.momentum.RSIIndicator(close=data['close'], window=rsi_length).rsi()
+
+    if smoothing_on:
+        data['Smoothed_RSI'] = EMAIndicator(close=data['RSI'], window=ema_length).ema_indicator()
+        feature_rsi = 'Smoothed_RSI'
+    else:
+        feature_rsi = 'RSI'
+
     data.dropna(inplace=True)
     data.reset_index(drop=True, inplace=True)
 
@@ -32,14 +40,14 @@ def process_data(file_path):
     train_data = data[data['time'] <= cutoff_date].copy()
     test_data = data[data['time'] > cutoff_date].copy()
 
-    features = ['log_return', 'RSI']
+    features = ['log_return', feature_rsi]
     X_train = train_data[features].values
 
     n_states = 4
     covariance_type = 'spherical' if 'eth3XPriceData.csv' in file_path else 'diag' if 'btc4XPriceData.csv' in file_path or 'eth2XPriceData.csv' in file_path else 'full'
 
-    model_filename = os.path.join(DATA_DIR, f'hmm_model_{os.path.basename(file_path)}.pkl')
-    scaler_filename = os.path.join(DATA_DIR, f'scaler_{os.path.basename(file_path)}.pkl')
+    model_filename = os.path.join(DATA_DIR, f'hmm_model_{os.path.basename(file_path)}_{rsi_length}_{ema_length}_{smoothing_on}.pkl')
+    scaler_filename = os.path.join(DATA_DIR, f'scaler_{os.path.basename(file_path)}_{rsi_length}_{ema_length}_{smoothing_on}.pkl')
 
     if os.path.exists(model_filename) and os.path.exists(scaler_filename):
         model = joblib.load(model_filename)
@@ -51,7 +59,7 @@ def process_data(file_path):
         joblib.dump(scaler, scaler_filename)
 
         model = GMMHMM(n_components=n_states, n_mix=2, covariance_type=covariance_type,
-                           n_iter=1000, random_state=42, tol=0.01)
+                       n_iter=1000, random_state=42, tol=0.01)
         model.fit(X_train_scaled)
         joblib.dump(model, model_filename)
 
