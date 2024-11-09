@@ -56,6 +56,26 @@ app.layout = dbc.Container([
             )
         ], xs=12, sm=6, md=4)
     ], className='mb-4'),
+
+    dbc.Row([
+        dbc.Col([
+            dbc.Label("RSI Length"),
+            dbc.Input(id='rsi-length-input', type='number', min=1, value=14)
+        ], xs=12, sm=4, md=3),
+        dbc.Col([
+            dbc.Label("EMA Length"),
+            dbc.Input(id='ema-length-input', type='number', min=1, value=20)
+        ], xs=12, sm=4, md=3),
+        dbc.Col([
+            dbc.Label("Smoothing"),
+            dbc.Checklist(
+                options=[{"label": "Smoothing", "value": "ON"}],
+                value=["ON"],
+                id="smoothing-switch",
+                switch=True,
+            )
+        ], xs=12, sm=4, md=3)
+    ], className='mb-4'),
     dbc.Row([
         dbc.Col([
             dcc.Graph(
@@ -79,7 +99,7 @@ app.layout = dbc.Container([
     ]),
     dcc.Store(id='coin-data'),
     dcc.Store(id='selected-file'),
-    dcc.Store(id='data-sync-trigger')  # Store to trigger data update
+    dcc.Store(id='data-sync-trigger')
 ], fluid=True)
 
 
@@ -122,11 +142,15 @@ def sync_data(n_clicks):
 @app.callback(
     Output('coin-data', 'data'),
     [Input('selected-file', 'data'),
-     Input('data-sync-trigger', 'data')]
+     Input('data-sync-trigger', 'data'),
+     Input('rsi-length-input', 'value'),
+     Input('ema-length-input', 'value'),
+     Input('smoothing-switch', 'value')]
 )
-def update_coin_data(file_path, sync_trigger):
+def update_coin_data(file_path, sync_trigger, rsi_length, ema_length, smoothing_value):
+    smoothing_on = 'ON' in smoothing_value
     if file_path and os.path.exists(file_path):
-        data = process_data(file_path)
+        data = process_data(file_path, rsi_length, ema_length, smoothing_on)
         return data.to_dict('records')
     else:
         print(f"File not found: {file_path}")

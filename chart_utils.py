@@ -14,13 +14,13 @@ def generate_chart(data, coin_name):
         candlestick_colors = {
             'Strong Bullish': '#009664', 
             'Bullish': '#ADFF2F',       
-            'Bearish': '#B22222',    
-            'Strong Bearish': '#FF8C00' 
+            'Bearish': '#FF8C00',    
+            'Strong Bearish': '#B22222' 
         }
     elif "btc4X" in coin_name:
         candlestick_colors = {
-            'Strong Bullish': '#ADFF2F', 
-            'Bullish': '#009664',      
+            'Strong Bullish': '#009664', 
+            'Bullish': '#ADFF2F',  
             'Bearish': '#B22222',        
             'Strong Bearish': '#FF8C00'
         }
@@ -30,6 +30,13 @@ def generate_chart(data, coin_name):
             'Bullish': '#ADFF2F',        
             'Bearish': '#B22222',      
             'Strong Bearish': '#FF8C00' 
+        }
+    elif "sol2X" in coin_name:
+        candlestick_colors = {
+            'Strong Bullish': '#ADFF2F',  
+            'Bullish': '#009664',        
+            'Bearish': '#FF8C00',      
+            'Strong Bearish': '#B22222' 
         }
     else:
         candlestick_colors = {
