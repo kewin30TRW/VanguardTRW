@@ -1,5 +1,5 @@
 runtime: python39
-entrypoint: gunicorn -w 2 -k sync -b :8080 toros:server
+entrypoint: gunicorn -w 2 -k sync -b :8080 --forwarded-allow-ips='*' toros:server
 
 instance_class: F1
 automatic_scaling:
@@ -9,3 +9,4 @@ automatic_scaling:
 
 env_variables:
   DATA_DIR: '/tmp'
+  ENV: 'production'

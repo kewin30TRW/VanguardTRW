@@ -1,3 +1,4 @@
+import os
 import dash
 import dash_bootstrap_components as dbc
 from dash import html, dcc, Input, Output, State
@@ -5,8 +6,12 @@ import pandas as pd
 from chart_utils import process_relayout_data
 from hmm_processor import process_data
 from fetchData import update_all_data
-import os
-from datetime import datetime 
+from datetime import datetime
+from flask import Flask, request, redirect
+from google.cloud import secretmanager
+from flask_httpauth import HTTPBasicAuth
+
+auth = HTTPBasicAuth()
 
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 
@@ -25,7 +30,42 @@ addresses = {
     "eth3X": os.path.join(DATA_DIR, "eth3XPriceData.csv")
 }
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+server = Flask(__name__)
+
+app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.DARKLY])
+
+ENV = os.getenv('ENV', 'development')
+print(f"Environment: {ENV}")
+
+def get_secret(secret_name):
+    client = secretmanager.SecretManagerServiceClient()
+    project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
+    
+    if not project_id:
+        raise EnvironmentError("Missing GOOGLE_CLOUD_PROJECT environment variable.")
+    
+    name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+    response = client.access_secret_version(request={"name": name})
+    return response.payload.data.decode("UTF-8")
+
+if ENV == 'production':
+    VALID_USERNAME = get_secret("USERNAME")
+    VALID_PASSWORD = get_secret("PASSWORD")
+
+    @auth.verify_password
+    def verify_password(username, password):
+        if username == VALID_USERNAME and password == VALID_PASSWORD:
+            return True
+        return False
+
+    @server.before_request
+    def before_request():
+        if not request.is_secure:
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=301)
+        return auth.login_required(lambda: None)()
+else:
+    pass
 
 app.layout = dbc.Container([
     dbc.Row([
@@ -102,7 +142,6 @@ app.layout = dbc.Container([
     dcc.Store(id='data-sync-trigger')
 ], fluid=True)
 
-
 @app.callback(
     [Output('selected-file', 'data'), Output('leverage-selector', 'value')],
     [Input('crypto-selector', 'value'), Input('leverage-selector', 'value')]
@@ -178,6 +217,6 @@ def update_chart(relayoutData, clear_clicks, coin_data, existing_figure, selecte
     return fig, percent_change_text
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 
 server = app.server
