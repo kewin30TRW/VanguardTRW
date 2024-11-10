@@ -7,9 +7,11 @@ from chart_utils import process_relayout_data
 from hmm_processor import process_data
 from fetchData import update_all_data
 from datetime import datetime
-from flask import Flask, request, Response
-from werkzeug.security import check_password_hash, generate_password_hash
+from flask import Flask, request, redirect
 from google.cloud import secretmanager
+from flask_httpauth import HTTPBasicAuth
+
+auth = HTTPBasicAuth()
 
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 
@@ -33,6 +35,7 @@ server = Flask(__name__)
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.DARKLY])
 
 ENV = os.getenv('ENV', 'development')
+print(f"Environment: {ENV}")
 
 def get_secret(secret_name):
     client = secretmanager.SecretManagerServiceClient()
@@ -49,32 +52,20 @@ if ENV == 'production':
     VALID_USERNAME = get_secret("USERNAME")
     VALID_PASSWORD = get_secret("PASSWORD")
 
-    VALID_PASSWORD_HASH = generate_password_hash(VALID_PASSWORD)
-
-    def check_auth(username, password):
-        """Check if the provided username and password are valid."""
-        return username == VALID_USERNAME and check_password_hash(VALID_PASSWORD_HASH, password)
-
-    def authenticate():
-        """Send a 401 response that enables basic auth."""
-        return Response(
-            'Authentication required', 401,
-            {'WWW-Authenticate': 'Basic realm="Login Required"'}
-        )
-
-    def requires_auth():
-        """Authenticate every request."""
-        auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return authenticate()
+    @auth.verify_password
+    def verify_password(username, password):
+        if username == VALID_USERNAME and password == VALID_PASSWORD:
+            return True
+        return False
 
     @server.before_request
     def before_request():
-        """Apply authentication to all routes."""
-        return requires_auth()
+        if not request.is_secure:
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=301)
+        return auth.login_required(lambda: None)()
 else:
-    def requires_auth():
-        pass
+    pass
 
 app.layout = dbc.Container([
     dbc.Row([
