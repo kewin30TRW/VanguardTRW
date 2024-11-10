@@ -2,12 +2,12 @@ import plotly.graph_objs as go
 import pandas as pd
 from datetime import datetime
 
-def generate_chart(data, coin_name):
+def generate_chart(data, coin_name, state_colors):
     state_mapping = {
-        1: {'condition': 'Strong Bullish', 'color': '#009664'},
-        2: {'condition': 'Bullish', 'color': '#ADFF2F'},
-        3: {'condition': 'Bearish', 'color': '#FF8C00'},
-        4: {'condition': 'Strong Bearish', 'color': '#B22222'}
+        1: {'condition': 'Strong Bullish', 'color': state_colors[1]},
+        2: {'condition': 'Bullish', 'color': state_colors[2]},
+        3: {'condition': 'Bearish', 'color': state_colors[3]},
+        4: {'condition': 'Strong Bearish', 'color': state_colors[4]}
     }
 
     fig = go.Figure()
@@ -58,13 +58,16 @@ def generate_chart(data, coin_name):
 
     return fig
 
-def process_relayout_data(relayoutData, clear_clicks, data, existing_figure, selected_file, triggered_input):
+def process_relayout_data(relayoutData, clear_clicks, data, existing_figure, selected_file, triggered_input, state_colors):
     coin_name = selected_file.split('PriceData')[0]
     percent_change_text = ""
 
-    if existing_figure is None or triggered_input == 'coin-data' or triggered_input == 'clear-shapes-button':
-        fig = generate_chart(data, coin_name)
-        percent_change_text = ""  
+    # Lista inputów dla wyborów kolorów
+    color_inputs = ['state-1-color', 'state-2-color', 'state-3-color', 'state-4-color']
+
+    if existing_figure is None or triggered_input in ['coin-data', 'clear-shapes-button'] + color_inputs:
+        fig = generate_chart(data, coin_name, state_colors)
+        percent_change_text = ""
     else:
         fig = go.Figure(existing_figure)
         if triggered_input == 'price-chart':

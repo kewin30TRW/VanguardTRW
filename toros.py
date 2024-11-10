@@ -116,6 +116,61 @@ app.layout = dbc.Container([
             )
         ], xs=12, sm=4, md=3)
     ], className='mb-4'),
+    # New color selection row
+    dbc.Row([
+        dbc.Col([
+            dbc.Label("State 1 Color (def. Green)"),
+            dbc.Select(
+                id='state-1-color',
+                options=[
+                    {'label': 'Green', 'value': '#009664'},
+                    {'label': 'Yellow Green', 'value': '#ADFF2F'},
+                    {'label': 'Orange', 'value': '#FF8C00'},
+                    {'label': 'Red', 'value': '#B22222'}
+                ],
+                value='#009664'
+            )
+        ], xs=12, sm=6, md=3),
+        dbc.Col([
+            dbc.Label("State 2 Color (def. Yellow green)"),
+            dbc.Select(
+                id='state-2-color',
+                options=[
+                    {'label': 'Green', 'value': '#009664'},
+                    {'label': 'Yellow Green', 'value': '#ADFF2F'},
+                    {'label': 'Orange', 'value': '#FF8C00'},
+                    {'label': 'Red', 'value': '#B22222'}
+                ],
+                value='#ADFF2F'
+            )
+        ], xs=12, sm=6, md=3),
+        dbc.Col([
+            dbc.Label("State 3 Color (def. Orange)"),
+            dbc.Select(
+                id='state-3-color',
+                options=[
+                    {'label': 'Green', 'value': '#009664'},
+                    {'label': 'Yellow Green', 'value': '#ADFF2F'},
+                    {'label': 'Orange', 'value': '#FF8C00'},
+                    {'label': 'Red', 'value': '#B22222'}
+                ],
+                value='#FF8C00'
+            )
+        ], xs=12, sm=6, md=3),
+        dbc.Col([
+            dbc.Label("State 4 Color (def. Red)"),
+            dbc.Select(
+                id='state-4-color',
+                options=[
+                    {'label': 'Green', 'value': '#009664'},
+                    {'label': 'Yellow Green', 'value': '#ADFF2F'},
+                    {'label': 'Orange', 'value': '#FF8C00'},
+                    {'label': 'Red', 'value': '#B22222'}
+                ],
+                value='#B22222'
+            )
+        ], xs=12, sm=6, md=3)
+    ], className='mb-4'),
     dbc.Row([
         dbc.Col([
             dcc.Graph(
@@ -199,19 +254,30 @@ def update_coin_data(file_path, sync_trigger, rsi_length, ema_length, smoothing_
     [Output('price-chart', 'figure'), Output('output-percent-change', 'children')],
     [Input('price-chart', 'relayoutData'),
      Input('clear-shapes-button', 'n_clicks'),
-     Input('coin-data', 'data')],
+     Input('coin-data', 'data'),
+     Input('state-1-color', 'value'),
+     Input('state-2-color', 'value'),
+     Input('state-3-color', 'value'),
+     Input('state-4-color', 'value')],
     [State('price-chart', 'figure'), State('selected-file', 'data')],
     prevent_initial_call=True
 )
-def update_chart(relayoutData, clear_clicks, coin_data, existing_figure, selected_file):
+def update_chart(relayoutData, clear_clicks, coin_data, state_1_color, state_2_color, state_3_color, state_4_color, existing_figure, selected_file):
     ctx = dash.callback_context
     triggered_input = ctx.triggered[0]['prop_id'].split('.')[0]
 
     data = pd.DataFrame(coin_data)
     data['time'] = pd.to_datetime(data['time'])
 
+    state_colors = {
+        1: state_1_color,
+        2: state_2_color,
+        3: state_3_color,
+        4: state_4_color
+    }
+
     fig, percent_change_text = process_relayout_data(
-        relayoutData, clear_clicks, data, existing_figure, selected_file, triggered_input
+        relayoutData, clear_clicks, data, existing_figure, selected_file, triggered_input, state_colors
     )
 
     return fig, percent_change_text
