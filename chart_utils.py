@@ -3,53 +3,21 @@ import pandas as pd
 from datetime import datetime
 
 def generate_chart(data, coin_name):
-    legend_colors = {
-        'Strong Bullish': '#009664', 
-        'Bullish': '#ADFF2F',         
-        'Bearish': '#FF8C00',    
-        'Strong Bearish': '#B22222' 
+    state_mapping = {
+        1: {'condition': 'Strong Bullish', 'color': '#009664'},
+        2: {'condition': 'Bullish', 'color': '#ADFF2F'},
+        3: {'condition': 'Bearish', 'color': '#FF8C00'},
+        4: {'condition': 'Strong Bearish', 'color': '#B22222'}
     }
-
-    if "btc3X" in coin_name:
-        candlestick_colors = {
-            'Strong Bullish': '#009664', 
-            'Bullish': '#ADFF2F',       
-            'Bearish': '#FF8C00',    
-            'Strong Bearish': '#B22222' 
-        }
-    elif "btc4X" in coin_name:
-        candlestick_colors = {
-            'Strong Bullish': '#009664', 
-            'Bullish': '#ADFF2F',  
-            'Bearish': '#B22222',        
-            'Strong Bearish': '#FF8C00'
-        }
-    elif "sol3X" in coin_name:
-        candlestick_colors = {
-            'Strong Bullish': '#009664',  
-            'Bullish': '#ADFF2F',        
-            'Bearish': '#B22222',      
-            'Strong Bearish': '#FF8C00' 
-        }
-    elif "sol2X" in coin_name:
-        candlestick_colors = {
-            'Strong Bullish': '#ADFF2F',  
-            'Bullish': '#009664',        
-            'Bearish': '#FF8C00',      
-            'Strong Bearish': '#B22222' 
-        }
-    else:
-        candlestick_colors = {
-            'Strong Bullish': '#009664',  
-            'Bullish': '#ADFF2F',        
-            'Bearish': '#FF8C00',         
-            'Strong Bearish': '#B22222'   
-        }
 
     fig = go.Figure()
 
-    for i, (condition, color) in enumerate(candlestick_colors.items(), start=1):
-        condition_data = data[data['MarketCondition'] == condition]
+    for state_index in range(1, 5):
+        condition_info = state_mapping[state_index]
+        condition = condition_info['condition']
+        color = condition_info['color']
+        condition_data = data[data['StateIndex'] == state_index]
+
         if not condition_data.empty:
             fig.add_trace(go.Candlestick(
                 x=condition_data['time'],
@@ -57,22 +25,24 @@ def generate_chart(data, coin_name):
                 high=condition_data['high'],
                 low=condition_data['low'],
                 close=condition_data['close'],
-                name=f"State{i}",
+                name=f"State{state_index}: {condition}",
                 increasing_line_color=color,
                 decreasing_line_color=color,
                 showlegend=True
             ))
-
-    for condition, color in legend_colors.items():
-        fig.add_trace(go.Scatter(
-            x=[None],
-            y=[None],
-            mode='markers',
-            marker=dict(size=10, color=color),
-            legendgroup=condition,
-            showlegend=True,
-            name=condition
-        ))
+        else:
+            fig.add_trace(go.Candlestick(
+                x=[],
+                open=[],
+                high=[],
+                low=[],
+                close=[],
+                name=f"State{state_index}: {condition}",
+                increasing_line_color=color,
+                decreasing_line_color=color,
+                showlegend=True,
+                visible=False 
+            ))
 
     fig.update_layout(
         title=f"{coin_name}",
@@ -83,8 +53,9 @@ def generate_chart(data, coin_name):
         plot_bgcolor='black',
         paper_bgcolor='black',
         font=dict(color='white'),
-        uirevision='constant' 
+        uirevision='constant'
     )
+
     return fig
 
 def process_relayout_data(relayoutData, clear_clicks, data, existing_figure, selected_file, triggered_input):

@@ -5,7 +5,12 @@ import joblib
 from sklearn.preprocessing import StandardScaler
 from hmmlearn.hmm import GMMHMM
 import ta
-from ta.trend import EMAIndicator  
+from ta.trend import EMAIndicator
+
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 
@@ -13,13 +18,14 @@ if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
 market_conditions_colors = {
-    'Strong Bullish': 'green',
-    'Bullish': 'lightgreen',
-    'Bearish': 'orange',
-    'Strong Bearish': 'red'
+    'Strong Bullish': 'green',  
+    'Bullish': 'lightgreen',     
+    'Bearish': 'orange',         
+    'Strong Bearish': 'red'       
 }
 
 def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
+    logger.info(f"Processing data for file: {file_path}")
     data = pd.read_csv(file_path, parse_dates=['time'], dayfirst=True)
     data.sort_values('time', inplace=True)
     data.reset_index(drop=True, inplace=True)
@@ -44,16 +50,23 @@ def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
     X_train = train_data[features].values
 
     n_states = 4
-    covariance_type = 'spherical' if 'eth3XPriceData.csv' in file_path else 'diag' if 'btc4XPriceData.csv' in file_path or 'eth2XPriceData.csv' in file_path else 'full'
+    if 'eth3XPriceData.csv' in file_path:
+        covariance_type = 'spherical'
+    elif 'btc4XPriceData.csv' in file_path or 'eth2XPriceData.csv' in file_path:
+        covariance_type = 'diag'
+    else:
+        covariance_type = 'full'
 
     model_filename = os.path.join(DATA_DIR, f'hmm_model_{os.path.basename(file_path)}_{rsi_length}_{ema_length}_{smoothing_on}.pkl')
     scaler_filename = os.path.join(DATA_DIR, f'scaler_{os.path.basename(file_path)}_{rsi_length}_{ema_length}_{smoothing_on}.pkl')
 
     if os.path.exists(model_filename) and os.path.exists(scaler_filename):
+        logger.info("Loading existing model and scaler.")
         model = joblib.load(model_filename)
         scaler = joblib.load(scaler_filename)
         X_train_scaled = scaler.transform(X_train)
     else:
+        logger.info("Creating new scaler and fitting model.")
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train)
         joblib.dump(scaler, scaler_filename)
@@ -63,25 +76,82 @@ def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
         model.fit(X_train_scaled)
         joblib.dump(model, model_filename)
 
-    train_data['HiddenState'] = model.predict(X_train_scaled)
-    state_means = train_data.groupby('HiddenState')['log_return'].mean()
-    state_ranking = state_means.sort_values(ascending=False).index.tolist()
+    train_hidden_states = model.predict(X_train_scaled)
+    train_data['HiddenState'] = train_hidden_states
 
-    state_market_conditions = {
-        state_ranking[0]: 'Strong Bullish',
-        state_ranking[1]: 'Bullish',
-        state_ranking[2]: 'Bearish',
-        state_ranking[3]: 'Strong Bearish'
+    state_stats = train_data.groupby('HiddenState')['log_return'].mean()
+    logger.info(f"State means for {file_path}:\n{state_stats}")
+
+    state_ranking = state_stats.sort_values(ascending=False).index.tolist()
+    logger.info(f"State ranking based on mean log_return for {file_path}: {state_ranking}")
+
+    new_hiddenstate_mapping = {}
+    for new_label, old_label in enumerate(state_ranking):
+        new_hiddenstate_mapping[old_label] = new_label
+
+    logger.info(f"HiddenState remapping for {file_path}: {new_hiddenstate_mapping}")
+
+    train_data['HiddenState'] = train_data['HiddenState'].map(new_hiddenstate_mapping)
+
+    standard_state_market_conditions = {
+        0: 'Strong Bullish',
+        1: 'Bullish',
+        2: 'Bearish',
+        3: 'Strong Bearish'
     }
+
+    if 'btc4XPriceData.csv' in file_path:
+        state_market_conditions = {
+            0: 'Strong Bullish',
+            1: 'Bullish',
+            2: 'Strong Bearish', 
+            3: 'Bearish'          
+        }
+        logger.info(f"Using custom state mapping for BTC4X: {state_market_conditions}")
+    elif 'eth3XPriceData.csv' in file_path:
+        state_market_conditions = {
+            0: 'Strong Bearish',
+            1: 'Strong Bullish',  
+            2: 'Bearish',        
+            3: 'Bullish'
+        }
+        logger.info(f"Using custom state mapping for ETH3X: {state_market_conditions}")
+    elif 'sol2XPriceData.csv' in file_path:
+        state_market_conditions = {
+            0: 'Bullish',        
+            1: 'Strong Bullish',  
+            2: 'Bearish',
+            3: 'Strong Bearish'
+        }
+        logger.info(f"Using custom state mapping for SOL2X: {state_market_conditions}")
+    else:
+        state_market_conditions = standard_state_market_conditions
+        logger.info(f"Using standard state mapping: {state_market_conditions}")
 
     train_data['MarketCondition'] = train_data['HiddenState'].map(state_market_conditions)
     train_data['Color'] = train_data['MarketCondition'].map(market_conditions_colors)
 
+    market_condition_to_state_index = {
+        'Strong Bullish': 1,
+        'Bullish': 2,
+        'Bearish': 3,
+        'Strong Bearish': 4
+    }
+    train_data['StateIndex'] = train_data['MarketCondition'].map(market_condition_to_state_index)
+
     X_test = test_data[features].values
     X_test_scaled = scaler.transform(X_test)
-    test_data['HiddenState'] = model.predict(X_test_scaled)
+    test_hidden_states = model.predict(X_test_scaled)
+
+    test_hidden_states_mapped = [new_hiddenstate_mapping[hs] for hs in test_hidden_states]
+    test_data['HiddenState'] = test_hidden_states_mapped
+
     test_data['MarketCondition'] = test_data['HiddenState'].map(state_market_conditions)
     test_data['Color'] = test_data['MarketCondition'].map(market_conditions_colors)
+    test_data['StateIndex'] = test_data['MarketCondition'].map(market_condition_to_state_index)
 
     combined_data = pd.concat([train_data, test_data], ignore_index=True)
+
+    logger.debug(f"Combined data head for {file_path}:\n{combined_data[['time', 'HiddenState', 'MarketCondition', 'StateIndex']].head(50)}")
+
     return combined_data
