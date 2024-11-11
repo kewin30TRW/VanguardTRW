@@ -31,14 +31,10 @@ def fetch_data(address):
     """
     variables = {"address": address, "period": period, "interval": interval}
     response = requests.post(url, headers=headers, json={"query": query, "variables": variables})
+    data = response.json()
+    candles = data.get("data", {}).get("tokenPriceCandles", [])
+    return candles
 
-    if response.status_code == 200:
-        data = response.json()
-        candles = data.get("data", {}).get("tokenPriceCandles", [])
-        return candles
-    else:
-        print(response.text)
-        return []
 
 def save_to_csv(address, filename):
     candles = fetch_data(address)

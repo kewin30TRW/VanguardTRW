@@ -3,12 +3,14 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import html, dcc, Input, Output, State
 import pandas as pd
+import atexit
 from chart_utils import process_relayout_data
 from hmm_processor import process_data
 from fetchData import update_all_data
 from datetime import datetime
 from flask import Flask, request, redirect
 from google.cloud import secretmanager
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask_httpauth import HTTPBasicAuth
 
 auth = HTTPBasicAuth()
@@ -35,7 +37,6 @@ server = Flask(__name__)
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.DARKLY])
 
 ENV = os.getenv('ENV', 'development')
-print(f"Environment: {ENV}")
 
 def get_secret(secret_name):
     client = secretmanager.SecretManagerServiceClient()
@@ -243,12 +244,8 @@ def sync_data(n_clicks):
 )
 def update_coin_data(file_path, sync_trigger, rsi_length, ema_length, smoothing_value):
     smoothing_on = 'ON' in smoothing_value
-    if file_path and os.path.exists(file_path):
-        data = process_data(file_path, rsi_length, ema_length, smoothing_on)
-        return data.to_dict('records')
-    else:
-        print(f"File not found: {file_path}")
-        return []
+    data = process_data(file_path, rsi_length, ema_length, smoothing_on)
+    return data.to_dict('records')
 
 @app.callback(
     [Output('price-chart', 'figure'), Output('output-percent-change', 'children')],
@@ -281,6 +278,17 @@ def update_chart(relayoutData, clear_clicks, coin_data, state_1_color, state_2_c
     )
 
     return fig, percent_change_text
+
+def scheduled_data_update():
+    update_all_data() 
+    for file_path in addresses.values():
+        process_data(file_path) 
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(scheduled_data_update, 'cron', minute=10)
+scheduler.start()
+
+atexit.register(lambda: scheduler.shutdown())
 
 if __name__ == '__main__':
     app.run_server(debug=False)
