@@ -12,15 +12,16 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
+HMM_MODELS_DIR = os.path.join(DATA_DIR, 'hmmModels')
 
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
+if not os.path.exists(HMM_MODELS_DIR):
+    os.makedirs(HMM_MODELS_DIR)
 
 market_conditions_colors = {
-    'Strong Bullish': 'green',  
-    'Bullish': 'lightgreen',     
-    'Bearish': 'orange',         
-    'Strong Bearish': 'red'       
+    'Strong Bullish': 'green',
+    'Bullish': 'lightgreen',
+    'Bearish': 'orange',
+    'Strong Bearish': 'red'
 }
 
 def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
@@ -55,8 +56,8 @@ def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
     else:
         covariance_type = 'full'
 
-    model_filename = os.path.join(DATA_DIR, f'hmm_model_{os.path.basename(file_path)}_{rsi_length}_{ema_length}_{smoothing_on}.pkl')
-    scaler_filename = os.path.join(DATA_DIR, f'scaler_{os.path.basename(file_path)}_{rsi_length}_{ema_length}_{smoothing_on}.pkl')
+    model_filename = os.path.join(HMM_MODELS_DIR, f'hmm_model_{os.path.basename(file_path)}_{rsi_length}_{ema_length}_{smoothing_on}.pkl')
+    scaler_filename = os.path.join(HMM_MODELS_DIR, f'scaler_{os.path.basename(file_path)}_{rsi_length}_{ema_length}_{smoothing_on}.pkl')
 
     if os.path.exists(model_filename) and os.path.exists(scaler_filename):
         model = joblib.load(model_filename)
@@ -96,20 +97,20 @@ def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
         state_market_conditions = {
             0: 'Strong Bullish',
             1: 'Bullish',
-            2: 'Strong Bearish', 
-            3: 'Bearish'          
+            2: 'Strong Bearish',
+            3: 'Bearish'
         }
     elif 'eth3XPriceData.csv' in file_path:
         state_market_conditions = {
             0: 'Strong Bearish',
-            1: 'Strong Bullish',  
-            2: 'Bearish',        
+            1: 'Strong Bullish',
+            2: 'Bearish',
             3: 'Bullish'
         }
     elif 'sol2XPriceData.csv' in file_path:
         state_market_conditions = {
-            0: 'Bullish',        
-            1: 'Strong Bullish',  
+            0: 'Bullish',
+            1: 'Strong Bullish',
             2: 'Bearish',
             3: 'Strong Bearish'
         }
