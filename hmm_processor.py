@@ -34,7 +34,7 @@ def process_data(file_path, smoothing_on=True):
         ema_length = 20
     elif 'btc3XPriceData.csv' in file_path:
         rsi_length = 14
-        ema_length = 22
+        ema_length = 20
     elif 'btc4XPriceData.csv' in file_path:
         rsi_length = 14
         ema_length = 21
@@ -122,11 +122,11 @@ def process_data(file_path, smoothing_on=True):
             3: 'Strong Bearish'
         }
     elif 'btc3XPriceData.csv' in file_path:
-        state_market_conditions = {
-            0: 'Strong Bearish',
-            1: 'Strong Bullish',
+        state_market_conditions = {  
+            0: 'Strong Bullish',
+            1: 'Strong Bearish',
             2: 'Strong Bearish',
-            3: 'Strong Bearish'
+            3: 'Strong Bullish'
         }
     elif 'btc2XPriceData.csv' in file_path:
         state_market_conditions = {
@@ -138,8 +138,8 @@ def process_data(file_path, smoothing_on=True):
     elif 'eth2XPriceData.csv' in file_path:
         state_market_conditions = {
             0: 'Strong Bullish',
-            1: 'Strong Bullish',
-            2: 'Strong Bearish',
+            1: 'Strong Bearish',
+            2: 'Strong Bullish',
             3: 'Strong Bearish'
         }
     elif 'eth3XPriceData.csv' in file_path:
@@ -151,7 +151,7 @@ def process_data(file_path, smoothing_on=True):
         }
     elif 'sol2XPriceData.csv' in file_path:
         state_market_conditions = {
-            0: 'Strong Bullish',
+            0: 'Strong Bearish',
             1: 'Strong Bullish',
             2: 'Strong Bearish',
             3: 'Strong Bearish'
