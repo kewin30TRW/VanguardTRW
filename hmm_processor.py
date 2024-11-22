@@ -28,6 +28,31 @@ def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
     data.sort_values('time', inplace=True)
     data.reset_index(drop=True, inplace=True)
 
+    if 'btc2XPriceData.csv' in file_path:
+        rsi_length = 14
+        ema_length = 20
+    elif 'btc3XPriceData.csv' in file_path:
+        rsi_length = 14
+        ema_length = 20
+    elif 'btc4XPriceData.csv' in file_path:
+        rsi_length = 14
+        ema_length = 21
+    elif 'eth2XPriceData.csv' in file_path:
+        rsi_length = 13
+        ema_length = 21
+    elif 'eth3XPriceData.csv' in file_path:
+        rsi_length = 14
+        ema_length = 17
+    elif 'sol2XPriceData.csv' in file_path:
+        rsi_length = 14
+        ema_length = 20
+    elif 'sol3XPriceData.csv' in file_path:
+        rsi_length = 10
+        ema_length = 40
+    else:
+        rsi_length = 14
+        ema_length = 20 
+
     data['log_return'] = np.log(data['close'] / data['close'].shift(1))
     data['RSI'] = ta.momentum.RSIIndicator(close=data['close'], window=rsi_length).rsi()
 
@@ -95,22 +120,50 @@ def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
     if 'btc4XPriceData.csv' in file_path:
         state_market_conditions = {
             0: 'Strong Bullish',
-            1: 'Bullish',
-            2: 'Strong Bearish', 
-            3: 'Bearish'          
+            1: 'Strong Bearish',
+            2: 'Strong Bearish',
+            3: 'Strong Bearish'
+        }
+    elif 'btc3XPriceData.csv' in file_path:
+        state_market_conditions = {  
+            0: 'Strong Bullish',
+            1: 'Strong Bearish',
+            2: 'Strong Bearish',
+            3: 'Strong Bullish'
+        }
+    elif 'btc2XPriceData.csv' in file_path:
+        state_market_conditions = {
+            0: 'Strong Bullish',
+            1: 'Strong Bullish',
+            2: 'Strong Bearish',
+            3: 'Strong Bearish'
+        }
+    elif 'eth2XPriceData.csv' in file_path:
+        state_market_conditions = {
+            0: 'Strong Bullish',
+            1: 'Strong Bearish',
+            2: 'Strong Bullish',
+            3: 'Strong Bearish'
         }
     elif 'eth3XPriceData.csv' in file_path:
         state_market_conditions = {
             0: 'Strong Bearish',
-            1: 'Strong Bullish',  
-            2: 'Bearish',        
-            3: 'Bullish'
+            1: 'Strong Bearish',
+            2: 'Strong Bullish',
+            3: 'Strong Bearish'
         }
     elif 'sol2XPriceData.csv' in file_path:
         state_market_conditions = {
-            0: 'Bullish',        
-            1: 'Strong Bullish',  
-            2: 'Bearish',
+            0: 'Strong Bearish',
+            1: 'Strong Bullish',
+            2: 'Strong Bearish',
+            3: 'Strong Bearish'
+        }
+    elif 'sol3XPriceData.csv' in file_path:
+        state_market_conditions = {
+            0: 'Strong Bullish',
+            1: 'Strong Bearish',
+            2: 'Strong Bearish',
             3: 'Strong Bearish'
         }
     else:

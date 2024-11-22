@@ -15,7 +15,7 @@ headers = {
 }
 
 period = "1y"
-interval = "1h"
+interval = "4h"
 
 def fetch_data(address):
     query = """
