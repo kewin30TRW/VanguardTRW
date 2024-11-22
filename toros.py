@@ -8,7 +8,6 @@ from callback_handler import CallbackHandler
 from data_manager import DataManager
 from scheduler_manager import SchedulerManager
 
-
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)

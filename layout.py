@@ -32,80 +32,60 @@ def create_layout():
             ], xs=12, sm=6, md=4)
         ], className='mb-4'),
 
-        dbc.Row([
-            dbc.Col([
-                dbc.Label("RSI Length"),
-                dbc.Input(id='rsi-length-input', type='number', min=1, value=14)
-            ], xs=12, sm=4, md=3),
-            dbc.Col([
-                dbc.Label("EMA Length"),
-                dbc.Input(id='ema-length-input', type='number', min=1, value=20)
-            ], xs=12, sm=4, md=3),
-            dbc.Col([
-                dbc.Label("Smoothing"),
-                dbc.Checklist(
-                    options=[{"label": "Smoothing", "value": "ON"}],
-                    value=["ON"],
-                    id="smoothing-switch",
-                    switch=True,
-                )
-            ], xs=12, sm=4, md=3)
-        ], className='mb-4'),
-
-        dbc.Row([
-            dbc.Col([
-                dbc.Label("State 1 Color (def. Green)"),
-                dbc.Select(
-                    id='state-1-color',
-                    options=[
-                        {'label': 'Green', 'value': '#009664'},
-                        {'label': 'Yellow Green', 'value': '#ADFF2F'},
-                        {'label': 'Orange', 'value': '#FF8C00'},
-                        {'label': 'Red', 'value': '#B22222'}
-                    ],
-                    value='#009664'
-                )
-            ], xs=12, sm=6, md=3),
-            dbc.Col([
-                dbc.Label("State 2 Color (def. Yellow green)"),
-                dbc.Select(
-                    id='state-2-color',
-                    options=[
-                        {'label': 'Green', 'value': '#009664'},
-                        {'label': 'Yellow Green', 'value': '#ADFF2F'},
-                        {'label': 'Orange', 'value': '#FF8C00'},
-                        {'label': 'Red', 'value': '#B22222'}
-                    ],
-                    value='#ADFF2F'
-                )
-            ], xs=12, sm=6, md=3),
-            dbc.Col([
-                dbc.Label("State 3 Color (def. Orange)"),
-                dbc.Select(
-                    id='state-3-color',
-                    options=[
-                        {'label': 'Green', 'value': '#009664'},
-                        {'label': 'Yellow Green', 'value': '#ADFF2F'},
-                        {'label': 'Orange', 'value': '#FF8C00'},
-                        {'label': 'Red', 'value': '#B22222'}
-                    ],
-                    value='#FF8C00'
-                )
-            ], xs=12, sm=6, md=3),
-            dbc.Col([
-                dbc.Label("State 4 Color (def. Red)"),
-                dbc.Select(
-                    id='state-4-color',
-                    options=[
-                        {'label': 'Green', 'value': '#009664'},
-                        {'label': 'Yellow Green', 'value': '#ADFF2F'},
-                        {'label': 'Orange', 'value': '#FF8C00'},
-                        {'label': 'Red', 'value': '#B22222'}
-                    ],
-                    value='#B22222'
-                )
-            ], xs=12, sm=6, md=3)
-        ], className='mb-4'),
+        # dbc.Row([
+        #     dbc.Col([
+        #         dbc.Label("State 1 Color (def. Green)"),
+        #         dbc.Select(
+        #             id='state-1-color',
+        #             options=[
+        #                 {'label': 'Green', 'value': '#009664'},
+        #                 {'label': 'Yellow Green', 'value': '#ADFF2F'},
+        #                 {'label': 'Orange', 'value': '#FF8C00'},
+        #                 {'label': 'Red', 'value': '#B22222'}
+        #             ],
+        #             value='#009664'
+        #         )
+        #     ], xs=12, sm=6, md=3),
+        #     dbc.Col([
+        #         dbc.Label("State 2 Color (def. Yellow green)"),
+        #         dbc.Select(
+        #             id='state-2-color',
+        #             options=[
+        #                 {'label': 'Green', 'value': '#009664'},
+        #                 {'label': 'Yellow Green', 'value': '#ADFF2F'},
+        #                 {'label': 'Orange', 'value': '#FF8C00'},
+        #                 {'label': 'Red', 'value': '#B22222'}
+        #             ],
+        #             value='#ADFF2F'
+        #         )
+        #     ], xs=12, sm=6, md=3),
+        #     dbc.Col([
+        #         dbc.Label("State 3 Color (def. Orange)"),
+        #         dbc.Select(
+        #             id='state-3-color',
+        #             options=[
+        #                 {'label': 'Green', 'value': '#009664'},
+        #                 {'label': 'Yellow Green', 'value': '#ADFF2F'},
+        #                 {'label': 'Orange', 'value': '#FF8C00'},
+        #                 {'label': 'Red', 'value': '#B22222'}
+        #             ],
+        #             value='#FF8C00'
+        #         )
+        #     ], xs=12, sm=6, md=3),
+        #     dbc.Col([
+        #         dbc.Label("State 4 Color (def. Red)"),
+        #         dbc.Select(
+        #             id='state-4-color',
+        #             options=[
+        #                 {'label': 'Green', 'value': '#009664'},
+        #                 {'label': 'Yellow Green', 'value': '#ADFF2F'},
+        #                 {'label': 'Orange', 'value': '#FF8C00'},
+        #                 {'label': 'Red', 'value': '#B22222'}
+        #             ],
+        #             value='#B22222'
+        #         )
+        #     ], xs=12, sm=6, md=3)
+        # ], className='mb-4'),
 
         dbc.Row([
             dbc.Col([
@@ -117,7 +97,7 @@ def create_layout():
                         'editable': True,
                         'edits': {'shapePosition': True}
                     },
-                    style={'height': '70vh'}
+                    style={'height': '80vh'}
                 )
             ], width=12)
         ]),

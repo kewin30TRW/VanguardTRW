@@ -24,10 +24,35 @@ market_conditions_colors = {
     'Strong Bearish': 'red'
 }
 
-def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
+def process_data(file_path, smoothing_on=True):
     data = pd.read_csv(file_path, parse_dates=['time'], dayfirst=True)
     data.sort_values('time', inplace=True)
     data.reset_index(drop=True, inplace=True)
+
+    if 'btc2XPriceData.csv' in file_path:
+        rsi_length = 14
+        ema_length = 20
+    elif 'btc3XPriceData.csv' in file_path:
+        rsi_length = 14
+        ema_length = 22
+    elif 'btc4XPriceData.csv' in file_path:
+        rsi_length = 14
+        ema_length = 21
+    elif 'eth2XPriceData.csv' in file_path:
+        rsi_length = 13
+        ema_length = 21
+    elif 'eth3XPriceData.csv' in file_path:
+        rsi_length = 14
+        ema_length = 17
+    elif 'sol2XPriceData.csv' in file_path:
+        rsi_length = 14
+        ema_length = 20
+    elif 'sol3XPriceData.csv' in file_path:
+        rsi_length = 10
+        ema_length = 40
+    else:
+        rsi_length = 14
+        ema_length = 20 
 
     data['log_return'] = np.log(data['close'] / data['close'].shift(1))
     data['RSI'] = ta.momentum.RSIIndicator(close=data['close'], window=rsi_length).rsi()
@@ -77,13 +102,9 @@ def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
     train_data['HiddenState'] = train_hidden_states
 
     state_stats = train_data.groupby('HiddenState')['log_return'].mean()
-
     state_ranking = state_stats.sort_values(ascending=False).index.tolist()
 
-    new_hiddenstate_mapping = {}
-    for new_label, old_label in enumerate(state_ranking):
-        new_hiddenstate_mapping[old_label] = new_label
-
+    new_hiddenstate_mapping = {old_label: new_label for new_label, old_label in enumerate(state_ranking)}
     train_data['HiddenState'] = train_data['HiddenState'].map(new_hiddenstate_mapping)
 
     standard_state_market_conditions = {
@@ -96,22 +117,50 @@ def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
     if 'btc4XPriceData.csv' in file_path:
         state_market_conditions = {
             0: 'Strong Bullish',
-            1: 'Bullish',
+            1: 'Strong Bearish',
             2: 'Strong Bearish',
-            3: 'Bearish'
+            3: 'Strong Bearish'
+        }
+    elif 'btc3XPriceData.csv' in file_path:
+        state_market_conditions = {
+            0: 'Strong Bearish',
+            1: 'Strong Bullish',
+            2: 'Strong Bearish',
+            3: 'Strong Bearish'
+        }
+    elif 'btc2XPriceData.csv' in file_path:
+        state_market_conditions = {
+            0: 'Strong Bullish',
+            1: 'Strong Bullish',
+            2: 'Strong Bearish',
+            3: 'Strong Bearish'
+        }
+    elif 'eth2XPriceData.csv' in file_path:
+        state_market_conditions = {
+            0: 'Strong Bullish',
+            1: 'Strong Bullish',
+            2: 'Strong Bearish',
+            3: 'Strong Bearish'
         }
     elif 'eth3XPriceData.csv' in file_path:
         state_market_conditions = {
             0: 'Strong Bearish',
-            1: 'Strong Bullish',
-            2: 'Bearish',
-            3: 'Bullish'
+            1: 'Strong Bearish',
+            2: 'Strong Bullish',
+            3: 'Strong Bearish'
         }
     elif 'sol2XPriceData.csv' in file_path:
         state_market_conditions = {
-            0: 'Bullish',
+            0: 'Strong Bullish',
             1: 'Strong Bullish',
-            2: 'Bearish',
+            2: 'Strong Bearish',
+            3: 'Strong Bearish'
+        }
+    elif 'sol3XPriceData.csv' in file_path:
+        state_market_conditions = {
+            0: 'Strong Bullish',
+            1: 'Strong Bearish',
+            2: 'Strong Bearish',
             3: 'Strong Bearish'
         }
     else:
@@ -119,6 +168,7 @@ def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
 
     train_data['MarketCondition'] = train_data['HiddenState'].map(state_market_conditions)
     train_data['Color'] = train_data['MarketCondition'].map(market_conditions_colors)
+    
 
     market_condition_to_state_index = {
         'Strong Bullish': 1,
@@ -131,7 +181,6 @@ def process_data(file_path, rsi_length=14, ema_length=20, smoothing_on=True):
     X_test = test_data[features].values
     X_test_scaled = scaler.transform(X_test)
     test_hidden_states = model.predict(X_test_scaled)
-
     test_hidden_states_mapped = [new_hiddenstate_mapping[hs] for hs in test_hidden_states]
     test_data['HiddenState'] = test_hidden_states_mapped
 
