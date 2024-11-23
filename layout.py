@@ -9,6 +9,20 @@ def create_layout():
             ], width=12)
         ]),
         dbc.Row([
+            # Dataset Selector
+            dbc.Col([
+                dbc.Label("Choose dataset"),
+                dbc.Select(
+                    id='dataset-selector',
+                    options=[
+                        {'label': 'TOROS', 'value': 'TOROS'},
+                        {'label': 'TLX', 'value': 'TLX'}
+                    ],
+                    value='TOROS'  # Default dataset
+                )
+            ], xs=12, sm=6, md=4),
+
+            # Crypto Selector
             dbc.Col([
                 dbc.Label("Choose crypto"),
                 dbc.Select(
@@ -18,20 +32,21 @@ def create_layout():
                         {'label': 'ETH', 'value': 'eth'},
                         {'label': 'SOL', 'value': 'sol'}
                     ],
-                    value='btc'
+                    value='btc'  # Default crypto
                 )
             ], xs=12, sm=6, md=4),
+
+            # Leverage Selector
             dbc.Col([
                 dbc.Label("Choose leverage"),
                 dbc.RadioItems(
                     id='leverage-selector',
-                    options=[],
-                    value='2X',
+                    options=[],  # Will be updated dynamically
+                    value='2X',  # Default leverage
                     inline=True
                 )
             ], xs=12, sm=6, md=4)
         ], className='mb-4'),
-
         # dbc.Row([
         #     dbc.Col([
         #         dbc.Label("State 1 Color (def. Green)"),

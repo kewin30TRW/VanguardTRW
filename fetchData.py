@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 from datetime import datetime, timezone
 import os
+from fetch_tlx_data import main as fetch_tlx_main
 
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 
@@ -60,9 +61,15 @@ addresses = {
     os.path.join(DATA_DIR, "eth3XPriceData.csv"): "0x32b1d1bfd4b3b0cb9ff2dcd9dac757aa64d4cb69"
 }
 
-def update_all_data():
-    for filename, address in addresses.items():
-        save_to_csv(address, filename)
+def update_all_data(dataset=None):
+    if dataset == "TOROS" or dataset is None:
+        # Fetch TOROS data
+        for filename, address in addresses.items():
+            save_to_csv(address, filename)
+
+    if dataset == "TLX" or dataset is None:
+        # Fetch TLX data
+        fetch_tlx_main()  # Call the main function in fetch_tlx_data.py
 
 if __name__ == '__main__':
     update_all_data()

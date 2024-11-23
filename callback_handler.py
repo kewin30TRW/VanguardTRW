@@ -22,10 +22,10 @@ class CallbackHandler:
     def _register_update_file_path(self):
         @self.app.callback(
             [Output('selected-file', 'data'), Output('leverage-selector', 'value')],
-            [Input('crypto-selector', 'value'), Input('leverage-selector', 'value')]
+            [Input('crypto-selector', 'value'), Input('leverage-selector', 'value'), Input('dataset-selector', 'value')]
         )
-        def update_file_path(crypto, leverage):
-            key = f"{crypto}{leverage}"
+        def update_file_path(crypto, leverage, dataset):
+            key = f"{dataset}_{crypto}{leverage} "# e.g., "TLX_BTC3X" or "TOROS_BTC2X"
             if key in self.addresses:
                 file_path = self.addresses[key]
                 return file_path, leverage
@@ -37,23 +37,27 @@ class CallbackHandler:
     def _register_update_leverage_options(self):
         @self.app.callback(
             Output('leverage-selector', 'options'),
-            Input('crypto-selector', 'value')
+            [Input('crypto-selector', 'value'), Input('dataset-selector', 'value')]
         )
-        def update_leverage_options(crypto):
+        def update_leverage_options(crypto, dataset):
             options = [{'label': '2X', 'value': '2X'}, {'label': '3X', 'value': '3X'}]
-            if crypto == 'btc':
+            if crypto == 'btc'and dataset == 'TLX':
                 options.append({'label': '4X', 'value': '4X'})
             return options
 
     def _register_sync_data(self):
         @self.app.callback(
             Output('data-sync-trigger', 'data'),
-            Input('sync-data-button', 'n_clicks'),
+            [Input('sync-data-button', 'n_clicks'), Input('dataset-selector', 'value')],
             prevent_initial_call=True
         )
-        def sync_data(n_clicks):
+        def sync_data(n_clicks, dataset):
             if n_clicks:
-                update_all_data()
+                # Update only the selected dataset
+                if dataset == 'TOROS':
+                    update_all_data("TOROS")  # Adjust update_all_data to accept dataset
+                elif dataset == 'TLX':
+                    update_all_data("TLX")
                 return {'sync_time': datetime.now().isoformat()}
             else:
                 return dash.no_update
