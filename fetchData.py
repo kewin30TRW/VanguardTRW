@@ -60,9 +60,68 @@ addresses = {
     os.path.join(DATA_DIR, "eth3XPriceData.csv"): "0x32b1d1bfd4b3b0cb9ff2dcd9dac757aa64d4cb69"
 }
 
+addresses1 = {
+    "sol2XPriceData": "0x7d3c9c6566375d7ad6e89169ca5c01b5edc15364",
+    "btc4XPriceData": "0x11b55966527ff030ca9c7b1c548b4be5e7eaee6d",
+    "eth3XPriceData": "0x32b1d1bfd4b3b0cb9ff2dcd9dac757aa64d4cb69"
+}
+
 def update_all_data():
     for filename, address in addresses.items():
         save_to_csv(address, filename)
 
-if __name__ == '__main__':
-    update_all_data()
+def fetch_latest_day_close_values(address):
+    """
+    Fetch the latest day's `close` values for a given token address.
+    """
+    query = """
+    query GetTokenPriceCandles($address: String!, $period: String!, $interval: String!) {
+      tokenPriceCandles(address: $address, period: $period, interval: $interval) {
+        timestamp
+        close
+      }
+    }
+    """
+    variables = {
+        "address": address,
+        "period": "1d",  # Fetch data from the last 7 days
+        "interval": "1h"
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json={"query": query, "variables": variables})
+        response.raise_for_status()
+
+        data = response.json()
+        candles = data.get("data", {}).get("tokenPriceCandles", [])
+
+        # Debugging logs
+        print(f"Raw API Response for {address}: {candles}")
+
+        # Process candles and extract close values for the current day
+        now = datetime.now(timezone.utc).date()
+        latest_day_closes = []
+        for candle in candles:
+            timestamp = datetime.fromtimestamp(int(candle['timestamp']) / 1000, timezone.utc)
+            if timestamp.date() == now:
+                close_value = float(candle['close']) / 1e18
+                latest_day_closes.append(close_value)
+                print(f"Timestamp: {timestamp}, Close: {close_value}")
+
+        print(f"Filtered close values for {address}: {latest_day_closes}")
+        return latest_day_closes
+    except Exception as e:
+        print(f"Error fetching data for {address}: {e}")
+        return []
+    
+def fetch_all_latest_day_close_values():
+    """
+    Fetch the latest day's `close` values for all token addresses.
+
+    :return: Dictionary of token names to their latest day's `close` values.
+    """
+    all_close_values = {}
+    for name, address in addresses1.items():
+        print(f"Fetching close values for {name} ({address})")
+        all_close_values[name] = fetch_latest_day_close_values(address)
+    return all_close_values
