@@ -8,6 +8,7 @@ from callback_handler import CallbackHandler
 from data_manager import DataManager
 from scheduler_manager import SchedulerManager
 from fetchData import fetch_all_latest_day_close_values
+from binance_fetcher import fetch_previous_close
 
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 if not os.path.exists(DATA_DIR):
@@ -37,7 +38,17 @@ def api_close_values():
         return jsonify(close_values)  
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
+    
+@server.route('/api/fetch_close/<symbol>', methods=['GET'])
+def api_fetch_close(symbol):
+    """
+    API endpoint to fetch the previous day's CLOSE value for a given symbol.
+    """
+    try:
+        close_price = fetch_previous_close(symbol)
+        return jsonify({"symbol": symbol, "close_price": close_price})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run_server(debug=False)
