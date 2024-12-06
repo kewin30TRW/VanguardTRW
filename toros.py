@@ -17,10 +17,17 @@ if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
 CSV_FILE_PATH = os.path.join(DATA_DIR, "dominant_asset_tracker.csv")
+SECOND_PORTFOLIO_CSV_PATH = os.path.join(DATA_DIR, "second_portfolio_tracker.csv")
+
 if not os.path.exists(CSV_FILE_PATH):
     with open(CSV_FILE_PATH, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(["Date", "Coin"])
+
+if not os.path.exists(SECOND_PORTFOLIO_CSV_PATH):
+    with open(SECOND_PORTFOLIO_CSV_PATH, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Date", "ID", "Asset"])
 
 addresses = get_addresses(DATA_DIR)
 
@@ -84,7 +91,6 @@ def api_webhook():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 @server.route('/api/dominant_asset', methods=['GET'])
 def get_dominant_asset():
     """
@@ -92,6 +98,43 @@ def get_dominant_asset():
     """
     try:
         with open(CSV_FILE_PATH, mode='r') as file:
+            reader = csv.DictReader(file)
+            data = [row for row in reader]
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@server.route('/api/add_second_portfolio', methods=['POST'])
+def add_second_portfolio():
+    """
+    API endpoint to handle adding a second portfolio and log it in CSV.
+    """
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "Invalid data format"}), 400
+
+        current_date = datetime.now().strftime('%Y-%m-%d')
+
+        with open(SECOND_PORTFOLIO_CSV_PATH, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            for key, value in data.items():
+                writer.writerow([current_date, key, value])
+
+        return jsonify({
+            "status": "success",
+            "logged_portfolio": data
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@server.route('/api/get_second_portfolio', methods=['GET'])
+def get_second_portfolio():
+    """
+    API endpoint to return the content of the second portfolio tracker CSV.
+    """
+    try:
+        with open(SECOND_PORTFOLIO_CSV_PATH, mode='r') as file:
             reader = csv.DictReader(file)
             data = [row for row in reader]
         return jsonify(data), 200
