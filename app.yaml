@@ -8,5 +8,6 @@ automatic_scaling:
   max_instances: 2
 
 env_variables:
-  DATA_DIR: '/tmp'
   ENV: 'production'
+  BUCKET_NAME: 'my-csv-storage'
+  DATA_DIR: '/workspace/data' 

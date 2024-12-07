@@ -62,7 +62,6 @@ def process_relayout_data(relayoutData, clear_clicks, data, existing_figure, sel
     coin_name = selected_file.split('PriceData')[0]
     percent_change_text = ""
 
-    # Lista inputów dla wyborów kolorów
     color_inputs = ['state-1-color', 'state-2-color', 'state-3-color', 'state-4-color']
 
     if existing_figure is None or triggered_input in ['coin-data', 'clear-shapes-button'] + color_inputs:

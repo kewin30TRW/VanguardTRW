@@ -1,75 +1,51 @@
 import os
 import dash
-import csv
 import dash_bootstrap_components as dbc
 from flask import Flask, request, jsonify
 from datetime import datetime
 from layout import create_layout
-from data_paths import get_addresses
 from callback_handler import CallbackHandler
 from data_manager import DataManager
 from scheduler_manager import SchedulerManager
-from fetchData import fetch_all_latest_day_close_values
 from binance_fetcher import fetch_previous_close
 
+ENV = os.getenv("ENV", "local")
+BUCKET_NAME = os.getenv("BUCKET_NAME", "my-csv-storage")
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
-
-CSV_FILE_PATH = os.path.join(DATA_DIR, "dominant_asset_tracker.csv")
-SECOND_PORTFOLIO_CSV_PATH = os.path.join(DATA_DIR, "second_portfolio_tracker.csv")
-
-if not os.path.exists(CSV_FILE_PATH):
-    with open(CSV_FILE_PATH, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(["Date", "Coin"])
-
-if not os.path.exists(SECOND_PORTFOLIO_CSV_PATH):
-    with open(SECOND_PORTFOLIO_CSV_PATH, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(["Date", "ID", "Asset"])
-
-addresses = get_addresses(DATA_DIR)
 
 server = Flask(__name__)
 
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.DARKLY])
+
 app.layout = create_layout()
 
-data_manager = DataManager(addresses)
-data_manager.update_all_data()
+data_manager = DataManager()
 
-callback_handler = CallbackHandler(app, addresses)
+data_manager.initialize_csv("dominant_asset_tracker.csv", ["Date", "Coin"])
+data_manager.initialize_csv("second_portfolio_tracker.csv", ["Date", "Asset"])
+
+callback_handler = CallbackHandler(app, data_manager)
 
 scheduler_manager = SchedulerManager(data_manager.update_all_data)
 
 @server.route('/api/close_values', methods=['GET'])
 def api_close_values():
-    """
-    API endpoint to fetch the latest day's `close` values for all token addresses.
-    """
     try:
-        close_values = fetch_all_latest_day_close_values()
-        return jsonify(close_values)  
+        close_values = data_manager.get_all_latest_day_close_values()
+        return jsonify(close_values)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
 @server.route('/api/fetch_close/<symbol>', methods=['GET'])
 def api_fetch_close(symbol):
-    """
-    API endpoint to fetch the previous day's CLOSE value for a given symbol.
-    """
     try:
         close_price = fetch_previous_close(symbol)
         return jsonify({"symbol": symbol, "close_price": close_price})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-        
+
 @server.route('/api/webhook', methods=['POST'])
 def api_webhook():
-    """
-    API endpoint to handle incoming TradingView alerts and log them in CSV.
-    """
     try:
         data = request.json
         if not data or "DominantAsset" not in data:
@@ -77,11 +53,11 @@ def api_webhook():
 
         dominant_asset = data["DominantAsset"]
 
-        current_date = datetime.now().strftime('%Y-%m-%d')
+        if dominant_asset == "USDT":
+            return jsonify({"status": "ignored", "reason": "USDT is not logged"}), 200
 
-        with open(CSV_FILE_PATH, mode='a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([current_date, dominant_asset])
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        data_manager.append_to_csv("dominant_asset_tracker.csv", [current_date, dominant_asset])
 
         return jsonify({
             "status": "success",
@@ -91,24 +67,16 @@ def api_webhook():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@server.route('/api/dominant_asset', methods=['GET'])
+@server.route('/api/get_dominant_asset', methods=['GET'])
 def get_dominant_asset():
-    """
-    API endpoint to return the content of the dominant asset tracker CSV.
-    """
     try:
-        with open(CSV_FILE_PATH, mode='r') as file:
-            reader = csv.DictReader(file)
-            data = [row for row in reader]
+        data = data_manager.read_csv("dominant_asset_tracker.csv")
         return jsonify(data), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @server.route('/api/add_second_portfolio', methods=['POST'])
 def add_second_portfolio():
-    """
-    API endpoint to handle adding a second portfolio and log it in CSV.
-    """
     try:
         data = request.json
         if not data:
@@ -116,27 +84,19 @@ def add_second_portfolio():
 
         current_date = datetime.now().strftime('%Y-%m-%d')
 
-        with open(SECOND_PORTFOLIO_CSV_PATH, mode='a', newline='') as file:
-            writer = csv.writer(file)
-            for key, value in data.items():
-                writer.writerow([current_date, key, value])
+        for _, value in data.items():
+            if value == "USDT":
+                continue
+            data_manager.append_to_csv("second_portfolio_tracker.csv", [current_date, value])
 
-        return jsonify({
-            "status": "success",
-            "logged_portfolio": data
-        }), 200
+        return jsonify({"status": "success", "logged_portfolio": data}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @server.route('/api/get_second_portfolio', methods=['GET'])
 def get_second_portfolio():
-    """
-    API endpoint to return the content of the second portfolio tracker CSV.
-    """
     try:
-        with open(SECOND_PORTFOLIO_CSV_PATH, mode='r') as file:
-            reader = csv.DictReader(file)
-            data = [row for row in reader]
+        data = data_manager.read_csv("second_portfolio_tracker.csv")
         return jsonify(data), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
