@@ -10,4 +10,4 @@ automatic_scaling:
 env_variables:
   ENV: 'production'
   BUCKET_NAME: 'my-csv-storage'
-  DATA_DIR: '/workspace/data' 
+  DATA_DIR: '' 

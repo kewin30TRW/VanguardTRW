@@ -12,7 +12,8 @@ from binance_fetcher import fetch_previous_close
 ENV = os.getenv("ENV", "local")
 BUCKET_NAME = os.getenv("BUCKET_NAME", "my-csv-storage")
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
-
+print("Selected bucket name:", BUCKET_NAME)
+print("Data dir:", DATA_DIR)
 server = Flask(__name__)
 
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.DARKLY])

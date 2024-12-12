@@ -13,6 +13,7 @@ class DataManager:
     def __init__(self):
         self.addresses = get_addresses()
         self.bucket_name = os.getenv('BUCKET_NAME', 'my-csv-storage')
+        print(f"Initialized DataManager with bucket: {self.bucket_name}")
 
     def update_all_data(self):
         """

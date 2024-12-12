@@ -65,7 +65,18 @@ market_conditions_colors = {
 }
 
 def process_data(file_path, smoothing_on=True):
-    data = pd.read_csv(file_path, parse_dates=['time'], dayfirst=True)
+    # Wczytanie danych z GCS (production) lub z lokalnego pliku (local)
+    if ENV == "production":
+        file_bytes = download_blob(file_path)
+        if file_bytes is None:
+            raise FileNotFoundError(f"File {file_path} not found in GCS bucket {BUCKET_NAME}")
+        data = pd.read_csv(io.BytesIO(file_bytes), parse_dates=['time'], dayfirst=True)
+    else:
+        local_path = os.path.join(DATA_DIR, file_path)
+        if not os.path.exists(local_path):
+            raise FileNotFoundError(f"Local file {local_path} not found")
+        data = pd.read_csv(local_path, parse_dates=['time'], dayfirst=True)
+
     data.sort_values('time', inplace=True)
     data.reset_index(drop=True, inplace=True)
 
@@ -190,7 +201,7 @@ def process_data(file_path, smoothing_on=True):
         state_market_conditions = {
             0: 'Strong Bullish',
             1: 'Strong Bearish',
-            2: 'Strong Bullish',
+            2: 'Strong Bearish',
             3: 'Strong Bearish'
         }
     elif 'eth3XPriceData.csv' in file_path:
