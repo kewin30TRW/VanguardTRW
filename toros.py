@@ -8,6 +8,8 @@ from callback_handler import CallbackHandler
 from data_manager import DataManager
 from scheduler_manager import SchedulerManager
 from binance_fetcher import fetch_previous_close
+import requests
+import logging
 
 ENV = os.getenv("ENV", "local")
 BUCKET_NAME = os.getenv("BUCKET_NAME", "my-csv-storage")
