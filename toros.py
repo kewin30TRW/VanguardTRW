@@ -1,4 +1,5 @@
 import os
+import csv
 import dash
 import dash_bootstrap_components as dbc
 from flask import Flask, request, jsonify
@@ -16,20 +17,37 @@ BUCKET_NAME = os.getenv("BUCKET_NAME", "my-csv-storage")
 DATA_DIR = os.getenv('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 print("Selected bucket name:", BUCKET_NAME)
 print("Data dir:", DATA_DIR)
+
 server = Flask(__name__)
-
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.DARKLY])
-
 app.layout = create_layout()
-
 data_manager = DataManager()
-
 data_manager.initialize_csv("dominant_asset_tracker.csv", ["Date", "Coin"])
 data_manager.initialize_csv("second_portfolio_tracker.csv", ["Date", "Asset"])
-
 callback_handler = CallbackHandler(app, data_manager)
-
 scheduler_manager = SchedulerManager(data_manager.update_all_data)
+TOTAL_FILE = os.path.join(DATA_DIR, "TOTAL.csv")
+
+def ensure_total_csv_exists():
+    if not os.path.exists(TOTAL_FILE):
+        with open(TOTAL_FILE, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["time", "open", "high", "low", "close"])
+
+def append_to_total_csv(time_val, open_val, high_val, low_val, close_val):
+    ensure_total_csv_exists()
+    with open(TOTAL_FILE, mode='a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow([time_val, open_val, high_val, low_val, close_val])
+
+def read_total_csv():
+    ensure_total_csv_exists()
+    rows = []
+    with open(TOTAL_FILE, mode='r', newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rows.append(row)
+    return rows
 
 @server.route('/api/close_values', methods=['GET'])
 def api_close_values():
@@ -53,20 +71,12 @@ def api_webhook():
         data = request.json
         if not data or "DominantAsset" not in data:
             return jsonify({"error": "Invalid data format"}), 400
-
         dominant_asset = data["DominantAsset"]
-
         if dominant_asset == "USDT":
             return jsonify({"status": "ignored", "reason": "USDT is not logged"}), 200
-
         current_date = datetime.now().strftime('%Y-%m-%d')
         data_manager.append_to_csv("dominant_asset_tracker.csv", [current_date, dominant_asset])
-
-        return jsonify({
-            "status": "success",
-            "logged_asset": dominant_asset,
-            "date": current_date
-        }), 200
+        return jsonify({"status": "success", "logged_asset": dominant_asset, "date": current_date}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -84,14 +94,11 @@ def add_second_portfolio():
         data = request.json
         if not data:
             return jsonify({"error": "Invalid data format"}), 400
-
         current_date = datetime.now().strftime('%Y-%m-%d')
-
         for _, value in data.items():
             if value == "USDT":
                 continue
             data_manager.append_to_csv("second_portfolio_tracker.csv", [current_date, value])
-
         return jsonify({"status": "success", "logged_portfolio": data}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -106,49 +113,38 @@ def get_second_portfolio():
 
 @server.route('/api/tradingview_total', methods=['POST'])
 def api_tradingview_total():
-    """
-    """
     try:
         if request.is_json:
             data = request.get_json()
             time_str = data.get("time")
             open_str = str(data.get("open"))
             high_str = str(data.get("high"))
-            low_str  = str(data.get("low"))
-            close_str= str(data.get("close"))
+            low_str = str(data.get("low"))
+            close_str = str(data.get("close"))
         else:
             time_str = request.form.get("time")
             open_str = request.form.get("open")
             high_str = request.form.get("high")
-            low_str  = request.form.get("low")
-            close_str= request.form.get("close")
-
+            low_str = request.form.get("low")
+            close_str = request.form.get("close")
         if not all([time_str, open_str, high_str, low_str, close_str]):
             return jsonify({"error": "Missing required fields (time, open, high, low, close)."}), 400
-
-        open_val  = float(open_str)
-        high_val  = float(high_str)
-        low_val   = float(low_str)
+        open_val = float(open_str)
+        high_val = float(high_str)
+        low_val = float(low_str)
         close_val = float(close_str)
-
-        data_manager.append_to_csv("TOTAL.csv", [time_str, open_val, high_val, low_val, close_val])
-
-        return jsonify({
-            "status": "success",
-            "message": f"Appended row to TOTAL.csv => {time_str},{open_val},{high_val},{low_val},{close_val}"
-        }), 200
-
+        append_to_total_csv(time_str, open_val, high_val, low_val, close_val)
+        return jsonify({"status": "success", "message": f"Appended row => {time_str},{open_val},{high_val},{low_val},{close_val}"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @server.route('/api/get_total_csv', methods=['GET'])
 def get_total_csv():
     try:
-        data = data_manager.read_csv("TOTAL.csv")
+        data = read_total_csv()
         return jsonify(data), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run_server(debug=False)
