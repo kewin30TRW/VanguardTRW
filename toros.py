@@ -104,6 +104,52 @@ def get_second_portfolio():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@server.route('/api/tradingview_total', methods=['POST'])
+def api_tradingview_total():
+    """
+    """
+    try:
+        if request.is_json:
+            data = request.get_json()
+            time_str = data.get("time")
+            open_str = str(data.get("open"))
+            high_str = str(data.get("high"))
+            low_str  = str(data.get("low"))
+            close_str= str(data.get("close"))
+        else:
+            time_str = request.form.get("time")
+            open_str = request.form.get("open")
+            high_str = request.form.get("high")
+            low_str  = request.form.get("low")
+            close_str= request.form.get("close")
+
+        if not all([time_str, open_str, high_str, low_str, close_str]):
+            return jsonify({"error": "Missing required fields (time, open, high, low, close)."}), 400
+
+        open_val  = float(open_str)
+        high_val  = float(high_str)
+        low_val   = float(low_str)
+        close_val = float(close_str)
+
+        data_manager.append_to_csv("TOTAL.csv", [time_str, open_val, high_val, low_val, close_val])
+
+        return jsonify({
+            "status": "success",
+            "message": f"Appended row to TOTAL.csv => {time_str},{open_val},{high_val},{low_val},{close_val}"
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@server.route('/api/get_total_csv', methods=['GET'])
+def get_total_csv():
+    try:
+        data = data_manager.read_csv("TOTAL.csv")
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run_server(debug=False)
 
